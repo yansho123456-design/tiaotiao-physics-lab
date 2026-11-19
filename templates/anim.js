@@ -82,7 +82,7 @@ window.COURSE_TAGS = {
     }
 
     // 游标尺框：零刻度位于 4.2 mm 处，左端头部在 3.2 mm 处
-    const zeroX = x0 + 20 + 4.2 * pxPerMm;
+    const zeroX = x0 + 20 + 3.2 * pxPerMm;
     const headX = zeroX - 34;
     const vWidth = 10 * 0.9 * pxPerMm + 68;
     ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
@@ -111,10 +111,10 @@ window.COURSE_TAGS = {
       }
     }
 
-    // 动画高亮 1：副尺零刻度线与左边主尺 4 mm 刻度
+    // 动画高亮 1：副尺零刻度线与左边主尺 3 mm 刻度
     const pZero = S.P(S.at(2, 0.2), 0.6);
     if (pZero > 0.01) {
-      const m4X = x0 + 20 + 4 * pxPerMm;
+      const m3X = x0 + 20 + 3 * pxPerMm;
       ctx.save();
       ctx.globalAlpha = pZero;
       ctx.strokeStyle = "#FC6255";
@@ -125,15 +125,15 @@ window.COURSE_TAGS = {
       ctx.lineTo(zeroX, splitY + 95);
       ctx.stroke();
       ctx.setLineDash([]);
-      drawLabelPill(ctx, "副尺 0 刻度线（主尺看它左边：4 mm）", zeroX - 20, splitY + 135, "#FC6255", "700 18px 'PingFang SC', sans-serif");
-      drawLabelPill(ctx, "主尺 4 mm", m4X, splitY - 92, "#FC6255", "700 18px 'PingFang SC', sans-serif");
+      drawLabelPill(ctx, "副尺 0 刻度线（主尺看它左边：3 mm）", zeroX - 20, splitY + 135, "#FC6255", "700 18px 'PingFang SC', sans-serif");
+      drawLabelPill(ctx, "主尺 3 mm", m3X, splitY - 92, "#FC6255", "700 18px 'PingFang SC', sans-serif");
       ctx.restore();
     }
 
-    // 动画高亮 2：第 2 格对齐主尺 6 mm
+    // 动画高亮 2：第 2 格对齐主尺 5 mm 中长线
     const pAlign = S.P(S.at(3, 0.2), 0.6);
     if (pAlign > 0.01) {
-      const alignX = zeroX + 2 * 0.9 * pxPerMm; // 4.2 + 1.8 = 6.0 mm
+      const alignX = zeroX + 2 * 0.9 * pxPerMm; // 3.2 + 1.8 = 5.0 mm
       ctx.save();
       ctx.globalAlpha = pAlign;
       ctx.shadowColor = "#83C167";
@@ -144,7 +144,7 @@ window.COURSE_TAGS = {
       ctx.arc(alignX, splitY, 18, 0, Math.PI * 2);
       ctx.stroke();
       ctx.shadowBlur = 0;
-      drawLabelPill(ctx, "第 2 格最齐 → 2 × 0.1 = 0.2 mm", alignX + 90, splitY - 92, "#83C167", "700 18px 'PingFang SC', sans-serif");
+      drawLabelPill(ctx, "第 2 格对齐主尺 5mm 中长线 → 0.2 mm", alignX + 110, splitY - 92, "#83C167", "700 18px 'PingFang SC', sans-serif");
       ctx.restore();
     }
 
@@ -177,10 +177,10 @@ window.COURSE_TAGS = {
 
     drawCardBox(ctx, 50, 520, 880, 380, "#58C4DD", "第 (1) 问 · 跳跳游标卡尺读数四步（必修3 第55讲）", [
       "① 定分度值：副尺 10 格 ⇒ 1 mm / 10 = 0.1 mm（结果必为 1 位小数）",
-      "② 读主尺：找副尺「0 刻度线」左边第一条主尺刻度 ⇒ 4 mm",
-      "   （易错：千万别看副尺左端的头，否则会错读成 3 mm！）",
-      "③ 读副尺：副尺第 2 格与主尺 6 mm 刻度完全对齐 ⇒ 2 × 0.1 = 0.2 mm",
-      "④ 算结果：d = 4 mm + 0.2 mm = 4.2 mm   【第 (1) 空填：4.2】",
+      "② 读主尺：找副尺「0 刻度线」左边第一条主尺刻度 ⇒ 3 mm",
+      "   （易错：千万别看副尺左端的头，否则会错读成 2 mm！）",
+      "③ 读副尺：副尺第 2 格与主尺 5 mm 中长线完全对齐 ⇒ 2 × 0.1 = 0.2 mm",
+      "④ 算结果：d = 3 mm + 0.2 mm = 3.2 mm   【第 (1) 空填：3.2】",
     ], S.P(S.at(0, 0.3), 0.6));
 
     // 右侧展示跳跳课上原图
@@ -435,14 +435,14 @@ window.COURSE_TAGS = {
     ctx.restore();
 
     drawCardBox(ctx, 160, 180, 1600, 220, "#83C167", "✅ 本题全四空标准答案", [
-      "(1) 挡光片宽度 d = 4.2 mm",
+      "(1) 挡光片宽度 d = 3.2 mm",
       "(2) 通过光电门速度 v = d / Δt",
       "(3) 弹性势能 E_p = md² / [ 2(Δt)² ]  ；  根据表格数据可得 E_p 与  x³  成正比",
     ], S.P(0.1, 0.6));
 
     drawCardBox(ctx, 160, 435, 1600, 210, "#58C4DD", "⚠️ 跳跳防坑 1：游标卡尺读数（必修3 第55讲）", [
       "• 读主尺一定认准副尺的「0 刻度线」，千万别用副尺左端的边缘去卡！",
-      "• 游标卡尺不估读，10 分度以 mm 为单位必须保留 1 位小数（4.2 mm）。",
+      "• 游标卡尺不估读，10 分度以 mm 为单位必须保留 1 位小数（3.2 mm）。",
     ], S.P(S.at(1, 0.1), 0.6));
 
     drawCardBox(ctx, 160, 680, 1600, 210, "#FC6255", "⚠️ 跳跳防坑 2 & 3：光电门位置与新情景表格题", [

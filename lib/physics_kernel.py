@@ -171,6 +171,55 @@ def solve_charged_particle_circle(
     return res
 
 
+def verify_vernier_caliper(
+    divisions: int,
+    main_mm: int,
+    aligned_k: int,
+    main_aligned_mm: Optional[int] = None,
+    tail_main_mm_floor: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Exact geometric self-consistency check for a vernier caliper reading.
+    - divisions: 10, 20, or 50 (standard span = divisions - 1 mm, e.g., 9mm, 19mm, 49mm)
+    - main_mm: integer mm read to the left of vernier 0 mark (M_0)
+    - aligned_k: index of aligned vernier tick (0 .. divisions)
+    - main_aligned_mm: which main-scale mm tick is aligned with aligned_k.
+      Must satisfy: main_aligned_mm == main_mm + aligned_k (for 1-mm-span vernier)!
+    - tail_main_mm_floor: integer main-scale mm to the left of the vernier's last tick.
+      Must satisfy: tail_main_mm_floor == main_mm + (divisions - 1) (when aligned_k > 0).
+    """
+    if divisions not in (10, 20, 50):
+        raise ValueError(f"Unsupported vernier divisions: {divisions}")
+    resolution = 1.0 / divisions
+    span_mm = divisions - 1
+    pitch_mm = span_mm / divisions
+    reading_mm = round(main_mm + aligned_k * resolution, 3)
+    expected_aligned_main = round(reading_mm + aligned_k * pitch_mm)
+    tail_pos_mm = round(reading_mm + span_mm, 3)
+
+    ok = True
+    errors = []
+    if main_aligned_mm is not None and main_aligned_mm != expected_aligned_main:
+        ok = False
+        errors.append(
+            f"对齐刻度矛盾: 主尺读 {main_mm}mm + 第{aligned_k}格对齐时，主尺被对齐线必为 {expected_aligned_main}mm，而非 {main_aligned_mm}mm"
+        )
+    if tail_main_mm_floor is not None and int(math.floor(tail_pos_mm)) != tail_main_mm_floor:
+        ok = False
+        errors.append(
+            f"尾线位置矛盾: 读数 {reading_mm}mm 时副尺尾线应在 {tail_pos_mm}mm (即 {int(math.floor(tail_pos_mm))}mm 右侧)，而非 {tail_main_mm_floor}mm 右侧"
+        )
+    fmt = f"{reading_mm:.1f}" if divisions == 10 else f"{reading_mm:.2f}"
+    return {
+        "ok": ok,
+        "reading_mm": reading_mm,
+        "formatted_mm": fmt,
+        "expected_aligned_main_mm": expected_aligned_main,
+        "tail_pos_mm": tail_pos_mm,
+        "errors": errors,
+    }
+
+
 def verify_symbolic(expr_lhs: str, expr_rhs: str, subs: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
     """Optional SymPy symbolic equivalence check."""
     if not HAS_SYMPY:
