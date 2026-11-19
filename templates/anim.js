@@ -1,221 +1,455 @@
 /**
- * 1920x1080 (16:9) 3Blue1Brown 电影级全屏分镜渲染：必修3 第44讲 第7题
+ * 第 11 题：探究渐进弹簧特性实验 —— 3Blue1Brown 5幕教学课程视频 (TIMELINE + S.at() 驱动)
  */
-window.renderPhysicsScene = function (ctx, t, env, sim, p, data) {
-  const { w, h, P, simT, smoothstep } = env;
+window.COURSE_TAGS = {
+  intro: ["01", "原题审题"],
+  caliper: ["02", "(1) 游标卡尺读数"],
+  photogate: ["03", "(2)(3) 光电门与能量转化"],
+  curve: ["04", "(3) 渐进弹簧 x³ 规律"],
+  outro: ["05", "答案汇总与防坑"],
+};
+
+(function () {
+  const { drawImageCard, hiBoxNorm } = window.Draw3B1B;
   const { drawLabelPill, drawVector } = window.Phys3B1B;
 
-  ctx.save();
-  ctx.fillStyle = "rgba(12, 15, 26, 0.85)";
-  ctx.fillRect(0, 0, w, 78);
-  ctx.strokeStyle = "rgba(88, 196, 221, 0.25)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(0, 78);
-  ctx.lineTo(w, 78);
-  ctx.stroke();
+  const imgs = {};
+  [
+    ["prob", "assets/problem.jpg"],
+    ["vernier", "assets/vernier_demo.png"],
+    ["airtrack", "assets/airtrack.png"],
+    ["convert", "assets/convert.png"],
+  ].forEach(([k, src]) => {
+    const im = new Image();
+    im.src = src;
+    imgs[k] = im;
+  });
 
-  ctx.fillStyle = "rgba(88, 196, 221, 0.16)";
-  ctx.strokeStyle = P.blue;
-  ctx.beginPath();
-  ctx.roundRect(36, 18, 390, 42, 21);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = P.blue;
-  ctx.font = "700 20px 'PingFang SC', sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(data.lessonTag, 36 + 195, 39);
-
-  ctx.fillStyle = P.text;
-  ctx.font = "700 26px 'PingFang SC', sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("7. 长方体导体 (3m×2m×1m)：B面流入电阻为 R，侧面 C 流入电阻为（ D. 4R ）", 456, 39);
-  ctx.restore();
-
-  function drawIsoCuboid(cx, cy, a, b, c, mode, phaseT, alpha = 1) {
+  function drawCardBox(ctx, x, y, w, h, color, title, lines, alpha) {
     if (alpha <= 0.01) return;
-    const scale = 58;
-    const W = b * scale * 1.3;
-    const H = c * scale * 1.3;
-    const D = a * scale * 0.85;
-    const dx = D * 0.72;
-    const dy = -D * 0.52;
-    const x0 = cx - (W + dx) / 2;
-    const y0 = cy + (H - dy) / 2;
-
-    const FBL = { x: x0, y: y0 }, FBR = { x: x0 + W, y: y0 };
-    const FTL = { x: x0, y: y0 - H }, FTR = { x: x0 + W, y: y0 - H };
-    const BBL = { x: x0 + dx, y: y0 + dy }, BBR = { x: x0 + W + dx, y: y0 + dy };
-    const BTL = { x: x0 + dx, y: y0 - H + dy }, BTR = { x: x0 + W + dx, y: y0 - H + dy };
-    const isB = mode === "B";
-    const activeColor = isB ? P.blue : P.gold;
-
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([7, 7]);
+    ctx.fillStyle = "rgba(18, 23, 42, 0.9)";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.moveTo(FBL.x, FBL.y); ctx.lineTo(BBL.x, BBL.y);
-    ctx.moveTo(BBL.x, BBL.y); ctx.lineTo(BBR.x, BBR.y);
-    ctx.moveTo(BBL.x, BBL.y); ctx.lineTo(BTL.x, BTL.y);
+    ctx.roundRect(x, y, w, h, 14);
+    ctx.fill();
     ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.fillStyle = "rgba(88, 196, 221, 0.08)";
-    ctx.beginPath();
-    ctx.moveTo(FBL.x, FBL.y); ctx.lineTo(FBR.x, FBR.y);
-    ctx.lineTo(FTR.x, FTR.y); ctx.lineTo(FTL.x, FTL.y);
-    ctx.closePath(); ctx.fill();
-
-    ctx.fillStyle = isB ? "rgba(88, 196, 221, 0.36)" : "rgba(88, 196, 221, 0.12)";
-    ctx.beginPath();
-    ctx.moveTo(FTL.x, FTL.y); ctx.lineTo(FTR.x, FTR.y);
-    ctx.lineTo(BTR.x, BTR.y); ctx.lineTo(BTL.x, BTL.y);
-    ctx.closePath(); ctx.fill();
-
-    ctx.fillStyle = !isB ? "rgba(244, 208, 63, 0.36)" : "rgba(88, 196, 221, 0.12)";
-    ctx.beginPath();
-    ctx.moveTo(FBR.x, FBR.y); ctx.lineTo(BBR.x, BBR.y);
-    ctx.lineTo(BTR.x, BTR.y); ctx.lineTo(FTR.x, FTR.y);
-    ctx.closePath(); ctx.fill();
-
-    ctx.strokeStyle = "#ECEFF4";
-    ctx.lineWidth = 2.6;
-    [[FBL, FBR], [FBR, FTR], [FTR, FTL], [FTL, FBL], [FTL, BTL], [BTL, BTR], [BTR, FTR], [FBR, BBR], [BBR, BTR]].forEach(([p1, p2]) => {
-      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-    });
-
-    ctx.save();
-    ctx.shadowColor = P.red;
-    ctx.shadowBlur = 18;
-    ctx.strokeStyle = P.red;
-    ctx.lineWidth = 5.5;
-    ctx.beginPath();
-    if (isB) { ctx.moveTo(FTL.x, FTL.y); ctx.lineTo(FBL.x, FBL.y); }
-    else { ctx.moveTo(FBR.x, FBR.y); ctx.lineTo(FBL.x, FBL.y); }
-    ctx.stroke();
-    ctx.restore();
-
-    for (let i = 0; i < 16; i++) {
-      const u = (i * 0.37) % 1, v = (i * 0.61 + 0.15) % 1;
-      const prog = (phaseT * (isB ? 1.05 : 0.6) + i / 16) % 1;
-      const px = isB ? FTL.x + u * W + v * dx : FBR.x + v * dx - prog * W;
-      const py = isB ? FTL.y + v * dy + prog * H : FBR.y - u * H + v * dy;
-      ctx.fillStyle = activeColor;
-      ctx.beginPath(); ctx.arc(px, py, 4.2, 0, Math.PI * 2); ctx.fill();
-    }
-
-    const fontPill = "700 18px 'PingFang SC', sans-serif";
-    if (isB) {
-      const topCx = (FTL.x + BTR.x) / 2, topCy = (FTL.y + BTR.y) / 2;
-      drawVector(ctx, topCx, topCy - 72, 0, 58, P.blue, "", 1);
-      drawLabelPill(ctx, "电流从顶面 B 流入 ↓", topCx, topCy - 90, P.blue, fontPill);
-      drawLabelPill(ctx, `有效长度 L_B = ${c} m`, FTL.x - 86, (FTL.y + FBL.y) / 2, P.red, fontPill);
-      drawLabelPill(ctx, `横截面 S_B = ${a}×${b} = ${(a * b).toFixed(1)} m²`, topCx, topCy + 22, P.blue, fontPill);
-      drawLabelPill(ctx, "基准电阻 R_B = 1.00 R", cx, FBL.y + 48, P.green, fontPill);
-    } else {
-      const rightCx = (FBR.x + BTR.x) / 2, rightCy = (FBR.y + BTR.y) / 2;
-      drawVector(ctx, rightCx + 84, rightCy, -68, 0, P.gold, "", 1);
-      drawLabelPill(ctx, "← 电流从侧面 C 流入", rightCx + 110, rightCy - 34, P.gold, fontPill);
-      drawLabelPill(ctx, `有效长度 L_C = ${b} m`, (FBL.x + FBR.x) / 2, FBL.y + 28, P.red, fontPill);
-      drawLabelPill(ctx, `横截面 S_C = ${a}×${c} = ${(a * c).toFixed(1)} m²`, rightCx + 10, rightCy + 34, P.gold, fontPill);
-      drawLabelPill(ctx, `电阻 R_C = (L_C/L_B)² R = ${sim.ratioCB.toFixed(2)} R`, cx, FBL.y + 68, P.gold, fontPill);
-    }
-    ctx.restore();
-  }
-
-  drawIsoCuboid(310, 355, p.a, p.b, p.c, "B", t, 1.0);
-  const cAlpha = smoothstep(simT(t, 3.2, 4.5));
-  drawIsoCuboid(790, 355, p.a, p.b, p.c, "C", t, Math.max(0.25, cAlpha));
-
-  const boardX = 1090, boardW = 790;
-  function drawStepCard(y, hBox, borderColor, title, lines, appearT) {
-    const prog = smoothstep(simT(t, appearT, appearT + 0.9));
-    if (prog <= 0.01) return;
-    ctx.save();
-    ctx.globalAlpha = prog;
-    ctx.translate(0, (1 - prog) * 18);
-    ctx.fillStyle = "rgba(18, 23, 42, 0.88)";
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.roundRect(boardX, y, boardW, hBox, 14); ctx.fill(); ctx.stroke();
-
-    ctx.fillStyle = borderColor;
-    ctx.font = "700 22px 'PingFang SC', sans-serif";
+    ctx.fillStyle = color;
+    ctx.font = "700 24px 'PingFang SC', sans-serif";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(title, boardX + 24, y + 18);
-
-    ctx.fillStyle = P.text;
-    ctx.font = "500 20px 'PingFang SC', sans-serif";
-    lines.forEach((ln, i) => ctx.fillText(ln, boardX + 24, y + 56 + i * 34));
+    ctx.fillText(title, x + 26, y + 18);
+    ctx.fillStyle = "#ECEFF4";
+    ctx.font = "500 21px 'PingFang SC', sans-serif";
+    lines.forEach((ln, idx) => ctx.fillText(ln, x + 26, y + 60 + idx * 36));
     ctx.restore();
   }
 
-  drawStepCard(110, 165, P.blue, "第 1 步：顺着电流箭头找「对应长度 L」（必修3 第44讲）", [
-    `• 从顶面 B 向下流：穿过的棱是高 ⇒ L_B = c = ${p.c} m，S_B = ${sim.SB.toFixed(1)} m²`,
-    `• 从侧面 C 向左流：穿过的棱是宽 ⇒ L_C = b = ${p.b} m，S_C = ${sim.SC.toFixed(1)} m²`,
-  ], 0.3);
+  // 绘制高清 3Blue1Brown 10 分度游标卡尺（还原图2：主尺 4mm + 游标尺第2格对齐 = 4.2mm）
+  function drawVernierCaliper(ctx, x0, y0, S) {
+    const pxPerMm = 36; // 1 mm = 36 px
+    const splitY = y0 + 115;
 
-  drawStepCard(295, 165, P.gold, "第 2 步：跳跳老师「珍珠奶茶吸管比喻」与等体积变形", [
-    "• 同一块长方体换面接入，总体积 V = L · S 恒定不变！",
-    "• 长度 L 变为 n 倍，横截面积 S 必连带变为 1/n，阻碍作用翻 n² 倍",
-  ], 4.0);
+    ctx.save();
+    // 主尺框
+    ctx.fillStyle = "rgba(30, 41, 59, 0.9)";
+    ctx.strokeStyle = "#58C4DD";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(x0 - 30, y0, 860, 115, 8);
+    ctx.fill();
+    ctx.stroke();
 
-  drawStepCard(480, 185, P.green, "第 3 步：等体积平方律秒杀（结论与常规法双验算）", [
-    `• 秒杀公式：R_C / R_B = (L_C / L_B)² = (${p.b} / ${p.c})² = ${sim.ratioCB.toFixed(2)}`,
-    `• 决定式验算：R_B = ρ·${p.c}/${sim.SB.toFixed(0)} = R  ⇒  R_C = ρ·${p.b}/${sim.SC.toFixed(0)} = ${sim.ratioCB.toFixed(2)} R`,
-    "• 本题标准数值下 R_C = 4R，直接选 D！",
-  ], 8.0);
+    // 主尺刻度 (0 ~ 22 mm)
+    ctx.strokeStyle = "#ECEFF4";
+    ctx.fillStyle = "#ECEFF4";
+    for (let m = 0; m <= 22; m++) {
+      const mx = x0 + 20 + m * pxPerMm;
+      const tickH = m % 10 === 0 ? 44 : m % 5 === 0 ? 32 : 20;
+      ctx.lineWidth = m % 10 === 0 ? 2.6 : 1.8;
+      ctx.beginPath();
+      ctx.moveTo(mx, splitY);
+      ctx.lineTo(mx, splitY - tickH);
+      ctx.stroke();
+      if (m % 10 === 0) {
+        ctx.font = "700 24px Inter, 'PingFang SC', sans-serif";
+        ctx.textAlign = "center";
+        const label = m === 0 ? "0" : m === 10 ? "1" : "2 cm";
+        ctx.fillText(label, mx, splitY - 58);
+      }
+    }
 
-  const chartX = 48, chartY = 685, chartW = 1000, chartH = 275;
-  ctx.save();
-  ctx.fillStyle = "rgba(18, 23, 42, 0.86)";
-  ctx.strokeStyle = "rgba(88, 196, 221, 0.28)";
-  ctx.lineWidth = 1.8;
-  ctx.beginPath(); ctx.roundRect(chartX, chartY, chartW, chartH, 14); ctx.fill(); ctx.stroke();
+    // 游标尺框：零刻度位于 4.2 mm 处，左端头部在 3.2 mm 处
+    const zeroX = x0 + 20 + 4.2 * pxPerMm;
+    const headX = zeroX - 34;
+    const vWidth = 10 * 0.9 * pxPerMm + 68;
+    ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
+    ctx.strokeStyle = "#F4D03F";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(headX, splitY, vWidth, 110, 8);
+    ctx.fill();
+    ctx.stroke();
 
-  ctx.fillStyle = P.gold;
-  ctx.font = "700 21px 'PingFang SC', sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("三面接入电阻对比：R ∝ L²（越细长电阻越大，越扁平电阻越小）", chartX + 26, chartY + 34);
+    // 游标尺 10 个格 (每格 0.9 mm)
+    for (let k = 0; k <= 10; k++) {
+      const vx = zeroX + k * 0.9 * pxPerMm;
+      const tickH = k % 5 === 0 ? 36 : 24;
+      ctx.strokeStyle = k === 2 ? "#83C167" : "#ECEFF4";
+      ctx.lineWidth = k === 2 ? 3.2 : 1.8;
+      ctx.beginPath();
+      ctx.moveTo(vx, splitY);
+      ctx.lineTo(vx, splitY + tickH);
+      ctx.stroke();
+      if (k === 0 || k === 5 || k === 10) {
+        ctx.fillStyle = "#F4D03F";
+        ctx.font = "700 22px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(String(k), vx, splitY + 66);
+      }
+    }
 
-  const items = [
-    { name: `B 面接入 (L_B = ${p.c}m, 最扁)`, ratio: 1.0, color: P.blue },
-    { name: `C 面接入 (L_C = ${p.b}m, 中等)`, ratio: sim.ratioCB, color: P.gold },
-    { name: `A 面接入 (L_A = ${p.a}m, 最细长)`, ratio: sim.ratioAB, color: P.purple },
-  ];
-  const maxRatio = Math.max(4.5, ...items.map((it) => it.ratio));
-  const barLeft = chartX + 310, barMaxW = chartW - 440;
-  const grow = smoothstep(simT(t, 0.5, 2.0));
+    // 动画高亮 1：副尺零刻度线与左边主尺 4 mm 刻度
+    const pZero = S.P(S.at(2, 0.2), 0.6);
+    if (pZero > 0.01) {
+      const m4X = x0 + 20 + 4 * pxPerMm;
+      ctx.save();
+      ctx.globalAlpha = pZero;
+      ctx.strokeStyle = "#FC6255";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(zeroX, splitY - 52);
+      ctx.lineTo(zeroX, splitY + 95);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      drawLabelPill(ctx, "副尺 0 刻度线（主尺看它左边：4 mm）", zeroX - 20, splitY + 135, "#FC6255", "700 18px 'PingFang SC', sans-serif");
+      drawLabelPill(ctx, "主尺 4 mm", m4X, splitY - 92, "#FC6255", "700 18px 'PingFang SC', sans-serif");
+      ctx.restore();
+    }
 
-  items.forEach((it, idx) => {
-    const ry = chartY + 72 + idx * 62;
-    ctx.fillStyle = P.text;
-    ctx.font = "600 19px 'PingFang SC', sans-serif";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    ctx.fillText(it.name, barLeft - 18, ry + 18);
+    // 动画高亮 2：第 2 格对齐主尺 6 mm
+    const pAlign = S.P(S.at(3, 0.2), 0.6);
+    if (pAlign > 0.01) {
+      const alignX = zeroX + 2 * 0.9 * pxPerMm; // 4.2 + 1.8 = 6.0 mm
+      ctx.save();
+      ctx.globalAlpha = pAlign;
+      ctx.shadowColor = "#83C167";
+      ctx.shadowBlur = 16;
+      ctx.strokeStyle = "#83C167";
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.arc(alignX, splitY, 18, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      drawLabelPill(ctx, "第 2 格最齐 → 2 × 0.1 = 0.2 mm", alignX + 90, splitY - 92, "#83C167", "700 18px 'PingFang SC', sans-serif");
+      ctx.restore();
+    }
 
-    const bw = Math.max(12, (it.ratio / maxRatio) * barMaxW * grow);
-    ctx.fillStyle = it.color + "44";
-    ctx.strokeStyle = it.color;
+    ctx.restore();
+  }
+
+  const SC = {};
+
+  // 第 1 幕：原题审题
+  SC.intro = (ctx, lt, S, env) => {
+    const { w } = env;
+    ctx.save();
+    ctx.fillStyle = "#ECEFF4";
+    ctx.font = "700 38px 'PingFang SC', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("第 11 题 · 气垫导轨与光电门探究「渐进弹簧」特性", w / 2, 108);
+    ctx.restore();
+
+    const rect = drawImageCard(ctx, imgs.prob, w / 2, 520, 1280, 720, S.P(0.1, 0.6), "#58C4DD");
+    // 依次高亮：图1气垫导轨 / 图2游标卡尺 / 三问与表格
+    hiBoxNorm(ctx, rect, [[0.08, 0.22, 0.41, 0.41]], "#58C4DD", S.P(S.at(1, 0.2), 0.5));
+    hiBoxNorm(ctx, rect, [[0.43, 0.19, 0.76, 0.41]], "#F4D03F", S.P(S.at(2, 0.2), 0.5));
+    hiBoxNorm(ctx, rect, [[0.07, 0.42, 0.85, 0.88]], "#83C167", S.P(S.at(3, 0.2), 0.5));
+  };
+
+  // 第 2 幕：第(1)问 游标卡尺读数 + 跳跳必修3第55讲原图
+  SC.caliper = (ctx, lt, S) => {
+    drawLabelPill(ctx, "图 2 放大演示：10 分度游标卡尺（分度值 0.1 mm，不估读）", 480, 130, "#F4D03F", "700 22px 'PingFang SC', sans-serif");
+    drawVernierCaliper(ctx, 70, 190, S);
+
+    drawCardBox(ctx, 50, 520, 880, 380, "#58C4DD", "第 (1) 问 · 跳跳游标卡尺读数四步（必修3 第55讲）", [
+      "① 定分度值：副尺 10 格 ⇒ 1 mm / 10 = 0.1 mm（结果必为 1 位小数）",
+      "② 读主尺：找副尺「0 刻度线」左边第一条主尺刻度 ⇒ 4 mm",
+      "   （易错：千万别看副尺左端的头，否则会错读成 3 mm！）",
+      "③ 读副尺：副尺第 2 格与主尺 6 mm 刻度完全对齐 ⇒ 2 × 0.1 = 0.2 mm",
+      "④ 算结果：d = 4 mm + 0.2 mm = 4.2 mm   【第 (1) 空填：4.2】",
+    ], S.P(S.at(0, 0.3), 0.6));
+
+    // 右侧展示跳跳课上原图
+    drawImageCard(ctx, imgs.vernier, 1420, 480, 840, 620, S.P(S.at(1, 0.2), 0.7), "#F4D03F");
+    drawLabelPill(ctx, "跳跳必修3 第55讲原图：红线看副尺零刻度，蓝线别看副尺的头", 1420, 845, "#F4D03F", "700 20px 'PingFang SC', sans-serif");
+  };
+
+  // 第 3 幕：第(2)(3)问前半 气垫导轨动态仿真 + 能量转化
+  SC.photogate = (ctx, lt, S) => {
+    // 左上：气垫导轨动画
+    const trackX = 60, trackY = 360, trackW = 860;
+    ctx.save();
+    ctx.fillStyle = "rgba(18, 23, 42, 0.9)";
+    ctx.strokeStyle = "rgba(88, 196, 221, 0.3)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(45, 110, 890, 360, 14);
+    ctx.fill();
+    ctx.stroke();
+
+    drawLabelPill(ctx, "气垫导轨动态仿真：压缩 x → 过原长 O 点分离 → 匀速过光电门", 490, 145, "#58C4DD", "700 20px 'PingFang SC', sans-serif");
+
+    // 导轨与左挡板
+    ctx.strokeStyle = "#ECEFF4";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(trackX, trackY - 90);
+    ctx.lineTo(trackX, trackY);
+    ctx.lineTo(trackX + trackW, trackY);
+    ctx.stroke();
+
+    const oX = trackX + 420; // 原长 O 点
+    const gateX = trackX + 700; // 光电门位置
+    // O 点虚线
+    ctx.strokeStyle = "#94A3B8";
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(oX, trackY - 80);
+    ctx.lineTo(oX, trackY + 35);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    drawLabelPill(ctx, "原长 O 点", oX, trackY + 52, "#94A3B8", "600 17px 'PingFang SC', sans-serif");
+
+    // 光电门
+    ctx.strokeStyle = "#83C167";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(gateX, trackY);
+    ctx.lineTo(gateX, trackY - 95);
+    ctx.stroke();
+    ctx.fillStyle = "#83C167";
+    ctx.beginPath();
+    ctx.arc(gateX, trackY - 95, 12, 0, Math.PI * 2);
+    ctx.fill();
+    drawLabelPill(ctx, "光电门 (测 Δt)", gateX, trackY - 125, "#83C167", "700 17px 'PingFang SC', sans-serif");
+
+    // 周期动画：0~1.5s 弹簧加速推到 O 点；1.5~3.2s 匀速过光电门
+    const cyc = (lt % 4.0) / 4.0;
+    const startX = trackX + 210; // 压缩位置
+    let blockX;
+    if (cyc < 0.45) {
+      const p = cyc / 0.45;
+      blockX = startX + (oX - startX) * (p * p);
+    } else {
+      const p = (cyc - 0.45) / 0.55;
+      blockX = oX + (trackX + trackW - 90 - oX) * p;
+    }
+    const springEnd = Math.min(blockX, oX);
+
+    // 弹簧折线
+    const coils = 12;
+    ctx.strokeStyle = "#F4D03F";
+    ctx.lineWidth = 2.8;
+    ctx.beginPath();
+    ctx.moveTo(trackX, trackY - 28);
+    for (let i = 1; i <= coils; i++) {
+      const sx = trackX + ((springEnd - trackX) * (i - 0.5)) / coils;
+      const sy = trackY - 28 + (i % 2 === 0 ? -14 : 14);
+      ctx.lineTo(sx, sy);
+    }
+    ctx.lineTo(springEnd, trackY - 28);
+    ctx.stroke();
+
+    // 滑块与挡光片
+    ctx.fillStyle = "rgba(88, 196, 221, 0.35)";
+    ctx.strokeStyle = "#58C4DD";
     ctx.lineWidth = 2.4;
-    ctx.beginPath(); ctx.roundRect(barLeft, ry, bw, 34, 7); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.roundRect(blockX, trackY - 52, 74, 52, 6);
+    ctx.fill();
+    ctx.stroke();
+    // 挡光片 d
+    ctx.fillStyle = "#FC6255";
+    ctx.fillRect(blockX + 32, trackY - 92, 10, 40);
+    drawLabelPill(ctx, "挡光片 d", blockX + 37, trackY - 110, "#FC6255", "600 15px 'PingFang SC', sans-serif");
+    ctx.restore();
 
-    ctx.fillStyle = it.color;
+    // 左下：跳跳课上原图（气垫导轨光电门 & 势能变动能）
+    drawImageCard(ctx, imgs.airtrack, 270, 720, 420, 320, S.P(S.at(1, 0.1), 0.6), "#58C4DD");
+    drawLabelPill(ctx, "动量第1讲：气垫导轨+光电门", 270, 910, "#58C4DD", "600 17px 'PingFang SC', sans-serif");
+    drawImageCard(ctx, imgs.convert, 720, 720, 420, 320, S.P(S.at(3, 0.1), 0.6), "#F4D03F");
+    drawLabelPill(ctx, "必修2第54讲：弹性势能转化为动能", 720, 910, "#F4D03F", "600 17px 'PingFang SC', sans-serif");
+
+    // 右侧：公式推导黑板
+    drawCardBox(ctx, 970, 110, 890, 320, "#58C4DD", "第 (2) 问 · 极短时间平均速度 = 瞬时速度（必修1 第6讲）", [
+      "• 挡光片宽度 d 很窄，挡光时间 Δt 极短",
+      "• 用微元法思想，极短时间内的平均速度即为通过光电门的瞬时速度：",
+      "      v = d / Δt",
+      "• 【第 (2) 空填： d / Δt 】",
+    ], S.P(S.at(1, 0.2), 0.6));
+
+    drawCardBox(ctx, 970, 465, 890, 445, "#83C167", "第 (3) 问前半 · 弹性势能全部转化为滑块动能（必修2 第50/54讲）", [
+      "• 光电门在 O 点右侧 → 滑块到光电门时弹簧已恢复原长（E_p末 = 0）",
+      "• 气垫导轨近似光滑无摩擦，弹簧弹性势能全部转化为滑块动能：",
+      "      E_p = E_k = ½ m v²",
+      "• 将 v = d / Δt 代入得：",
+      "      E_p = ½ m (d / Δt)² = m d² / [ 2 (Δt)² ]",
+      "• 【第 (3) 问第一空填： md² / (2Δt²) 】",
+    ], S.P(S.at(2, 0.3), 0.6));
+  };
+
+  // 第 4 幕：第(3)问后半 渐进弹簧数据表与 x³ 曲线可视化
+  SC.curve = (ctx, lt, S) => {
+    // 左半屏：E_p - x 坐标系对比 (x² vs x³)
+    const gx = 90, gy = 140, gw = 820, gh = 760;
+    ctx.save();
+    ctx.fillStyle = "rgba(18, 23, 42, 0.9)";
+    ctx.strokeStyle = "rgba(88, 196, 221, 0.3)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(gx, gy, gw, gh, 14);
+    ctx.fill();
+    ctx.stroke();
+
+    const ox = gx + 100, oy = gy + gh - 80;
+    const pw = gw - 160, ph = gh - 160;
+    ctx.strokeStyle = "#ECEFF4";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(ox, oy - ph);
+    ctx.lineTo(ox, oy);
+    ctx.lineTo(ox + pw, oy);
+    ctx.stroke();
+
+    ctx.fillStyle = "#94A3B8";
     ctx.font = "700 20px Inter, 'PingFang SC', sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText(`${it.ratio.toFixed(2)} R`, barLeft + bw + 14, ry + 18);
-  });
-  ctx.restore();
+    ctx.fillText("E_p / E_p0", ox - 40, oy - ph - 20);
+    ctx.fillText("x / x_0", ox + pw - 20, oy + 42);
 
-  drawStepCard(685, 275, P.red, "跳跳防坑指南（卡 bixiu3-44-c06 / c14 / c17）", [
-    "1. 别把边长与面积搞混：顺着电流方向穿过的那条边才是 L！",
-    "2. 电阻率 ρ 只由材料和温度决定，换面通电时 ρ 绝对不变！",
-    "3. 「R 之比 = L 之比的平方」仅在总体积 V 不变时成立！",
-    "（点击下方「🎛️ 调参实验」或「📸 课上原图」可随时互动查看）",
-  ], 12.0);
-};
+    const mapX = (u) => ox + (u / 4.3) * pw;
+    const mapY = (v) => oy - (v / 68) * ph;
+
+    // 虚线对比：普通弹簧 E_p ∝ x²
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.45)";
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    for (let u = 0; u <= 4.1; u += 0.05) {
+      const px = mapX(u), py = mapY(u * u);
+      if (u === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    drawLabelPill(ctx, "普通弹簧：E_p ∝ x² (4x₀ 时仅 16E_p0)", mapX(3.2), mapY(10.2) + 28, "#94A3B8", "600 16px 'PingFang SC', sans-serif");
+
+    // 实线：渐进弹簧 E_p ∝ x³
+    const curveProg = S.P(S.at(2, 0.2), 1.2);
+    if (curveProg > 0.01) {
+      ctx.save();
+      ctx.shadowColor = "#F4D03F";
+      ctx.shadowBlur = 14;
+      ctx.strokeStyle = "#F4D03F";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      const uMax = 4.05 * curveProg;
+      for (let u = 0; u <= uMax; u += 0.04) {
+        const px = mapX(u), py = mapY(u * u * u);
+        if (u === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 四个实验数据点 (1,1), (2,8), (3,27), (4,64)
+    const pts = [
+      [1, 1, "1³ = 1"],
+      [2, 8, "2³ = 8"],
+      [3, 27, "3³ = 27"],
+      [4, 64, "4³ = 64"],
+    ];
+    pts.forEach(([u, v, lab], idx) => {
+      const pPt = S.P(S.at(1, idx * 0.35), 0.5);
+      if (pPt <= 0.01) return;
+      const px = mapX(u), py = mapY(v);
+      ctx.save();
+      ctx.globalAlpha = pPt;
+      ctx.strokeStyle = "rgba(244, 208, 63, 0.3)";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(px, oy);
+      ctx.lineTo(px, py);
+      ctx.lineTo(ox, py);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "#ECEFF4";
+      ctx.font = "700 18px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`${u}x₀`, px, oy + 28);
+      ctx.textAlign = "right";
+      ctx.fillText(`${v}E_p0`, ox - 12, py + 6);
+
+      ctx.shadowColor = "#FC6255";
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "#FC6255";
+      ctx.beginPath();
+      ctx.arc(px, py, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      drawLabelPill(ctx, lab, px - 42, py - 22, "#F4D03F", "700 16px Inter, sans-serif");
+      ctx.restore();
+    });
+    ctx.restore();
+
+    // 右半屏：表格幂次规律推导
+    drawCardBox(ctx, 960, 140, 880, 420, "#F4D03F", "第 (3) 问后半 · 表格数据幂次规律拆解", [
+      "• 当 x = 1 x₀ 时：E_p =  1 E_p0 = 1³ · E_p0",
+      "• 当 x = 2 x₀ 时：E_p =  8 E_p0 = 2³ · E_p0",
+      "• 当 x = 3 x₀ 时：E_p = 27 E_p0 = 3³ · E_p0",
+      "• 当 x = 4 x₀ 时：E_p = 64 E_p0 = 4³ · E_p0",
+      "",
+      "⇒ 系数 1, 8, 27, 64 恰好是压缩量倍数的立方 (n³)！",
+    ], S.P(S.at(1, 0.1), 0.6));
+
+    drawCardBox(ctx, 960, 600, 880, 300, "#83C167", "最终结论（区分普通弹簧与渐进弹簧）", [
+      "• 普通弹簧满足胡克定律，E_p = ½kx² ∝ x²",
+      "• 本题「渐进弹簧」越压越硬，由实验表格可得：",
+      "      E_p 与 x³ 成正比！   【最后一空填：x³】",
+    ], S.P(S.at(3, 0.1), 0.6));
+  };
+
+  // 第 5 幕：结尾答案汇总与防坑
+  SC.outro = (ctx, lt, S, env) => {
+    const { w } = env;
+    ctx.save();
+    ctx.fillStyle = "#F4D03F";
+    ctx.font = "700 40px 'PingFang SC', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("第 11 题 · 标准答案汇总与三大考场防坑指南", w / 2, 125);
+    ctx.restore();
+
+    drawCardBox(ctx, 160, 180, 1600, 220, "#83C167", "✅ 本题全四空标准答案", [
+      "(1) 挡光片宽度 d = 4.2 mm",
+      "(2) 通过光电门速度 v = d / Δt",
+      "(3) 弹性势能 E_p = md² / [ 2(Δt)² ]  ；  根据表格数据可得 E_p 与  x³  成正比",
+    ], S.P(0.1, 0.6));
+
+    drawCardBox(ctx, 160, 435, 1600, 210, "#58C4DD", "⚠️ 跳跳防坑 1：游标卡尺读数（必修3 第55讲）", [
+      "• 读主尺一定认准副尺的「0 刻度线」，千万别用副尺左端的边缘去卡！",
+      "• 游标卡尺不估读，10 分度以 mm 为单位必须保留 1 位小数（4.2 mm）。",
+    ], S.P(S.at(1, 0.1), 0.6));
+
+    drawCardBox(ctx, 160, 680, 1600, 210, "#FC6255", "⚠️ 跳跳防坑 2 & 3：光电门位置与新情景表格题", [
+      "• 光电门必须放在原长 O 点右侧，确保滑块到达光电门时弹簧已恢复原长、弹性势能全部转为动能。",
+      "• 遇到「渐进弹簧」等新信息题，切忌死背 ½kx²，直接算表格倍数 1、8、27、64 = 1³、2³、3³、4³！",
+    ], S.P(S.at(2, 0.1), 0.6));
+  };
+
+  window.COURSE_SCENES = SC;
+})();
