@@ -55,13 +55,9 @@ python3 scripts/search_tiaotiao.py 关键词1 关键词2
 
 ### 第 4 步：合成 1.3 倍速同步语音、渲染 1080p 视频并打包为「跨设备单文件 HTML」
 1. 编写 5 幕结构分镜讲稿 `script.json`（`01 原题审题` → `02 物理可视化` → `03 跳跳课堂与相似母题截图` → `04 具体题目公式推导` → `05 结尾总结与防坑`）与画布脚本 `anim.js`。
-2. 合成 1.3 倍速语音与精确同步时间轴 `build/timeline.js`：
+2. 一键构建最终课程（**自动适配桌面与手机端沙盒**：有 `playwright+ffmpeg` 时生成内嵌 1080p MP4 的单文件 HTML；在豆包手机版/WorkBuddy/千问等无浏览器沙盒环境时，自动零依赖生成 37KB 轻量单文件 HTML，用手机浏览器 Web Speech 1.3x 语音 + Web Audio 音效直接播放）：
    ```bash
-   python3 scripts/build_audio.py <课题目录>
-   ```
-3. 一键渲染 1080p MP4 并打包为**跨设备单文件 HTML（`<课题名>_course.html`）**：
-   ```bash
-   python3 scripts/bundle_single_html.py <课题目录>
+   python3 scripts/build_course.py <课题目录>
    ```
 
 ---
